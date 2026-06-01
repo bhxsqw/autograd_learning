@@ -1,9 +1,13 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <cstring>
+#include <iomanip>
+#include <cmath>
+
 #include "Tensor.h"
 #include "Ops.h"
 #include "Module.h"
 #include "Optimizer.h"
+#include "Loss.h"
 
 using namespace std;
 
@@ -29,14 +33,15 @@ void runBasic() {
 void runStandard() {
     cout << "===== Standard Linear Regression Demo =====" << endl;
     cout << "TODO: train y = w1*x1 + w2*x2 + b" << endl;
-    //1. ×¼±¸ÑµÁ·Êý¾Ý
+
+    // 1. å‡†å¤‡è®­ç»ƒæ•°æ®
     const double true_w1 = 2.5;
     const double true_w2 = -1.2;
     const double true_b = 0.5;
-
     const int num_samples = 200;
-    Tensor X(num_samples, 2, 0.0, false);   // ÊäÈëÌØÕ÷£¬²»ÐèÒªÌÝ¶È
-    Tensor y_true(num_samples, 1, 0.0, false); // ÕæÊµ±êÇ©£¬²»ÐèÒªÌÝ¶È
+
+    Tensor X(num_samples, 2, 0.0, false);        // è¾“å…¥ç‰¹å¾ï¼Œä¸éœ€è¦æ¢¯åº¦
+    Tensor y_true(num_samples, 1, 0.0, false);   // çœŸå®žæ ‡ç­¾ï¼Œä¸éœ€è¦æ¢¯åº¦
 
     srand(42);
     for (int i = 0; i < num_samples; ++i) {
@@ -47,64 +52,85 @@ void runStandard() {
         y_true.at(i, 0) = true_w1 * x1 + true_w2 * x2 + true_b;
     }
 
-    //2. ¶¨Òå¿ÉÑµÁ·²ÎÊý
-    Tensor W(2, 1, 0.0, true);   // È¨ÖØ [2,1]£¬ÐèÒªÌÝ¶È
-    Tensor b(1, 1, 0.0, true);   // Æ«ÖÃ [1,1]£¬ÐèÒªÌÝ¶È
+    // 2. å®šä¹‰å¯è®­ç»ƒçº¿æ€§å±‚
+    Linear layer(2, 1);
+    Tensor& W = layer.weight();    // æƒé‡ [2,1]ï¼Œéœ€è¦æ¢¯åº¦
+    Tensor& b = layer.bias();      // åç½® [1,1]ï¼Œéœ€è¦æ¢¯åº¦
 
-    //3. ´´½¨ÓÅ»¯Æ÷²¢×¢²á²ÎÊý
+    // 3. åˆ›å»ºä¼˜åŒ–å™¨å¹¶æ³¨å†Œå‚æ•°
     SGD optimizer(0.05);
     optimizer.addParam(&W);
     optimizer.addParam(&b);
 
-    //4. ÑµÁ·Ñ­»·
-    int epochs = 5000;
-    cout << "\n[ÑµÁ·Ñ­»·] ¿ªÊ¼ÑµÁ·£¬¹² " << epochs << " ÂÖµü´ú..." << endl;
+    // 4. è®­ç»ƒå¾ªçŽ¯å·²å°è£…åˆ° trainLoss
+    trainLoss(layer, X, y_true, optimizer, 5000, 50);
 
-    for (int epoch = 1; epoch <= epochs; ++epoch) {
-        //A: ÇåÁãÉÏÒ»ÂÖµÄÌÝ¶È
-        optimizer.zeroGrad();
-        //B: Ç°Ïò´«²¥
-        Tensor matmul_res = matmul(X, W);
-        Tensor y_pred = matmul_res + b;
-        //C: ¼ÆËãËðÊ§
-        Tensor loss = mseLoss(y_pred, y_true);
-        //D: ·´Ïò´«²¥£¬¼ÆËã W ºÍ b µÄÌÝ¶È
-        loss.backward();
-        //E: ¸üÐÂ²ÎÊý£¨ÌÝ¶ÈÏÂ½µ£©
-        optimizer.step();
-
-        // ´òÓ¡½ø¶È
-        if (epoch % 50 == 0 || epoch == 1) {
-            cout << "Epoch " << epoch << " | loss = " << loss.value() << endl;
-        }
-    }
-
-    cout << "ÑµÁ·Íê³É" << endl;
-    //5. ÑéÖ¤²¿·Ö£¨½öµ÷ÊÔÓÃ£¬¿ÉÉ¾³ý£©
-    cout << "\n===== ÑéÖ¤²¿·Ö£¨½öÓÃÓÚµ÷ÊÔ£©=====" << endl;
-    cout << "ÑµÁ·µÃµ½µÄ²ÎÊý£º" << endl;
+    cout << "è®­ç»ƒå®Œæˆ" << endl;
+    // 5. éªŒè¯éƒ¨åˆ†
+    cout << "\n===== éªŒè¯éƒ¨åˆ†ï¼ˆä»…ç”¨äºŽè°ƒè¯•ï¼‰=====" << endl;
+    cout << "è®­ç»ƒå¾—åˆ°çš„å‚æ•°ï¼š" << endl;
     cout << "w1 = " << W.at(0, 0) << ", w2 = " << W.at(1, 0) << ", b = " << b.at(0, 0) << endl;
-    cout << "ÕæÊµ²ÎÊý£º" << endl;
+    cout << "çœŸå®žå‚æ•°ï¼š" << endl;
     cout << "w1 = " << true_w1 << ", w2 = " << true_w2 << ", b = " << true_b << endl;
 
-    double err_w1 = abs(W.at(0, 0) - true_w1) / true_w1;
-    double err_w2 = abs(W.at(1, 0) - true_w2) / true_w2;
-    double err_b = abs(b.at(0, 0) - true_b) / true_b;
-    cout << "Ïà¶ÔÎó²î£ºw1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
+    double err_w1 = abs(W.at(0, 0) - true_w1) / abs(true_w1);
+    double err_w2 = abs(W.at(1, 0) - true_w2) / abs(true_w2);
+    double err_b = abs(b.at(0, 0) - true_b) / abs(true_b);
+
+    cout << "ç›¸å¯¹è¯¯å·®ï¼šw1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
 
     if (err_w1 < 0.05 && err_w2 < 0.05 && err_b < 0.05) {
-        cout << "ÑéÖ¤Í¨¹ý£ºÌÝ¶ÈÏÂ½µÕýÈ·ÊµÏÖÁË²ÎÊýÊÕÁ²¡£" << endl;
+        cout << "éªŒè¯é€šè¿‡ï¼šæ¢¯åº¦ä¸‹é™æ­£ç¡®å®žçŽ°äº†å‚æ•°æ”¶æ•›ã€‚" << endl;
     }
     else {
-        cout << "ÑéÖ¤Ê§°Ü£º²ÎÊýÎ´ÊÕÁ²£¬Çë¼ì²éÑ§Ï°ÂÊ»òÑµÁ·ÂÖÊý¡£" << endl;
+        cout << "éªŒè¯å¤±è´¥ï¼šå‚æ•°æœªæ”¶æ•›ï¼Œè¯·æ£€æŸ¥å­¦ä¹ çŽ‡æˆ–è®­ç»ƒè½®æ•°ã€‚" << endl;
     }
     cout << "=============================================" << endl;
-
 }
 
 void runChallenge() {
     cout << "===== Challenge XOR Neural Network Demo =====" << endl;
-    cout << "TODO: train 2-4-1 network for XOR" << endl;
+
+    double xData[] = {
+        0.0, 0.0,
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0
+    };
+    double yData[] = {
+        0.0,
+        1.0,
+        1.0,
+        0.0
+    };
+
+    Tensor x(xData, 4, 2, false);
+    Tensor target(yData, 4, 1, false);
+
+    Linear layer1(2, 4);
+    Linear layer2(4, 1);
+
+    SGD optimizer(0.5);
+    optimizer.addParam(&layer1.weight());
+    optimizer.addParam(&layer1.bias());
+    optimizer.addParam(&layer2.weight());
+    optimizer.addParam(&layer2.bias());
+
+    trainLoss(layer1, layer2, x, target, optimizer, 20000, 2000);
+
+    Tensor h = layer1.forward(x);
+    Tensor a = sigmoid(h);
+    Tensor z = layer2.forward(a);
+    Tensor pred = sigmoid(z);
+
+    cout << "XOR predictions:" << endl;
+    for (int i = 0; i < pred.rowCount(); i++) {
+        int predictedClass = pred.at(i, 0) >= 0.5 ? 1 : 0;
+        cout << static_cast<int>(x.at(i, 0)) << " "
+             << static_cast<int>(x.at(i, 1)) << " -> "
+             << fixed << setprecision(4) << pred.at(i, 0)
+             << " -> class " << predictedClass << endl;
+    }
 }
 
 int main(int argc, char* argv[]) {
