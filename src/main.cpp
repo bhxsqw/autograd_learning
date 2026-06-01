@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <iomanip>
 #include "Tensor.h"
 #include "Ops.h"
 #include "Module.h"
@@ -104,7 +105,64 @@ void runStandard() {
 
 void runChallenge() {
     cout << "===== Challenge XOR Neural Network Demo =====" << endl;
-    cout << "TODO: train 2-4-1 network for XOR" << endl;
+
+    double xData[] = {
+        0.0, 0.0,
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0
+    };
+    double yData[] = {
+        0.0,
+        1.0,
+        1.0,
+        0.0
+    };
+
+    Tensor x(xData, 4, 2, false);
+    Tensor target(yData, 4, 1, false);
+
+    Linear layer1(2, 4);
+    Linear layer2(4, 1);
+
+    SGD optimizer(0.5);
+    optimizer.addParam(&layer1.weight());
+    optimizer.addParam(&layer1.bias());
+    optimizer.addParam(&layer2.weight());
+    optimizer.addParam(&layer2.bias());
+
+    const int epochs = 20000;
+    for (int epoch = 0; epoch <= epochs; epoch++) {
+        optimizer.zeroGrad();
+
+        Tensor h = layer1.forward(x);
+        Tensor a = sigmoid(h);
+        Tensor z = layer2.forward(a);
+        Tensor pred = sigmoid(z);
+        Tensor loss = mseLoss(pred, target);
+
+        loss.backward();
+        optimizer.step();
+
+        if (epoch % 2000 == 0 || epoch == epochs) {
+            cout << "epoch " << setw(5) << epoch
+                 << " loss = " << fixed << setprecision(6) << loss.value() << endl;
+        }
+    }
+
+    Tensor h = layer1.forward(x);
+    Tensor a = sigmoid(h);
+    Tensor z = layer2.forward(a);
+    Tensor pred = sigmoid(z);
+
+    cout << "XOR predictions:" << endl;
+    for (int i = 0; i < pred.rowCount(); i++) {
+        int predictedClass = pred.at(i, 0) >= 0.5 ? 1 : 0;
+        cout << static_cast<int>(x.at(i, 0)) << " "
+             << static_cast<int>(x.at(i, 1)) << " -> "
+             << fixed << setprecision(4) << pred.at(i, 0)
+             << " -> class " << predictedClass << endl;
+    }
 }
 
 int main(int argc, char* argv[]) {
