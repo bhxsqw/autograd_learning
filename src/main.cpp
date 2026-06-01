@@ -52,12 +52,12 @@ void runStandard() {
     Tensor b(1, 1, 0.0, true);   // 偏置 [1,1]，需要梯度
 
     //3. 创建优化器并注册参数
-    SGD optimizer(0.02);
+    SGD optimizer(0.05);
     optimizer.addParam(&W);
     optimizer.addParam(&b);
 
     //4. 训练循环
-    int epochs = 500;
+    int epochs = 5000;
     cout << "\n[训练循环] 开始训练，共 " << epochs << " 轮迭代..." << endl;
 
     for (int epoch = 1; epoch <= epochs; ++epoch) {
