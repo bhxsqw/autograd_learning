@@ -34,13 +34,14 @@ void runStandard() {
     cout << "===== Standard Linear Regression Demo =====" << endl;
     cout << "TODO: train y = w1*x1 + w2*x2 + b" << endl;
 
+    // 1. 准备训练数据
     const double true_w1 = 2.5;
     const double true_w2 = -1.2;
     const double true_b = 0.5;
     const int num_samples = 200;
 
-    Tensor X(num_samples, 2, 0.0, false);
-    Tensor y_true(num_samples, 1, 0.0, false);
+    Tensor X(num_samples, 2, 0.0, false);        // 输入特征，不需要梯度
+    Tensor y_true(num_samples, 1, 0.0, false);   // 真实标签，不需要梯度
 
     srand(42);
     for (int i = 0; i < num_samples; ++i) {
@@ -51,34 +52,38 @@ void runStandard() {
         y_true.at(i, 0) = true_w1 * x1 + true_w2 * x2 + true_b;
     }
 
+    // 2. 定义可训练线性层
     Linear layer(2, 1);
-    Tensor& W = layer.weight();
-    Tensor& b = layer.bias();
+    Tensor& W = layer.weight();    // 权重 [2,1]，需要梯度
+    Tensor& b = layer.bias();      // 偏置 [1,1]，需要梯度
 
+    // 3. 创建优化器并注册参数
     SGD optimizer(0.05);
     optimizer.addParam(&W);
     optimizer.addParam(&b);
 
+    // 4. 训练循环已封装到 trainLoss
     trainLoss(layer, X, y_true, optimizer, 5000, 50);
 
-    cout << "ѵ�����" << endl;
-    cout << "\n===== ��֤���֣������ڵ��ԣ�=====" << endl;
-    cout << "ѵ���õ��Ĳ�����" << endl;
+    cout << "训练完成" << endl;
+    // 5. 验证部分
+    cout << "\n===== 验证部分（仅用于调试）=====" << endl;
+    cout << "训练得到的参数：" << endl;
     cout << "w1 = " << W.at(0, 0) << ", w2 = " << W.at(1, 0) << ", b = " << b.at(0, 0) << endl;
-    cout << "��ʵ������" << endl;
+    cout << "真实参数：" << endl;
     cout << "w1 = " << true_w1 << ", w2 = " << true_w2 << ", b = " << true_b << endl;
 
     double err_w1 = abs(W.at(0, 0) - true_w1) / abs(true_w1);
     double err_w2 = abs(W.at(1, 0) - true_w2) / abs(true_w2);
     double err_b = abs(b.at(0, 0) - true_b) / abs(true_b);
 
-    cout << "�����w1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
+    cout << "相对误差：w1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
 
     if (err_w1 < 0.05 && err_w2 < 0.05 && err_b < 0.05) {
-        cout << "��֤ͨ�����ݶ��½���ȷʵ���˲���������" << endl;
+        cout << "验证通过：梯度下降正确实现了参数收敛。" << endl;
     }
     else {
-        cout << "��֤ʧ�ܣ�����δ����������ѧϰ�ʻ�ѵ��������" << endl;
+        cout << "验证失败：参数未收敛，请检查学习率或训练轮数。" << endl;
     }
     cout << "=============================================" << endl;
 }
