@@ -1,10 +1,13 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <cstring>
 #include <iomanip>
+#include <cmath>
+
 #include "Tensor.h"
 #include "Ops.h"
 #include "Module.h"
 #include "Optimizer.h"
+#include "Loss.h"
 
 using namespace std;
 
@@ -30,14 +33,14 @@ void runBasic() {
 void runStandard() {
     cout << "===== Standard Linear Regression Demo =====" << endl;
     cout << "TODO: train y = w1*x1 + w2*x2 + b" << endl;
-    //1. ×¼±¸ÑµÁ·Êý¾Ý
+
     const double true_w1 = 2.5;
     const double true_w2 = -1.2;
     const double true_b = 0.5;
-
     const int num_samples = 200;
-    Tensor X(num_samples, 2, 0.0, false);   // ÊäÈëÌØÕ÷£¬²»ÐèÒªÌÝ¶È
-    Tensor y_true(num_samples, 1, 0.0, false); // ÕæÊµ±êÇ©£¬²»ÐèÒªÌÝ¶È
+
+    Tensor X(num_samples, 2, 0.0, false);
+    Tensor y_true(num_samples, 1, 0.0, false);
 
     srand(42);
     for (int i = 0; i < num_samples; ++i) {
@@ -48,59 +51,36 @@ void runStandard() {
         y_true.at(i, 0) = true_w1 * x1 + true_w2 * x2 + true_b;
     }
 
-    //2. ¶¨Òå¿ÉÑµÁ·²ÎÊý
-    Tensor W(2, 1, 0.0, true);   // È¨ÖØ [2,1]£¬ÐèÒªÌÝ¶È
-    Tensor b(1, 1, 0.0, true);   // Æ«ÖÃ [1,1]£¬ÐèÒªÌÝ¶È
+    Linear layer(2, 1);
+    Tensor& W = layer.weight();
+    Tensor& b = layer.bias();
 
-    //3. ´´½¨ÓÅ»¯Æ÷²¢×¢²á²ÎÊý
     SGD optimizer(0.05);
     optimizer.addParam(&W);
     optimizer.addParam(&b);
 
-    //4. ÑµÁ·Ñ­»·
-    int epochs = 5000;
-    cout << "\n[ÑµÁ·Ñ­»·] ¿ªÊ¼ÑµÁ·£¬¹² " << epochs << " ÂÖµü´ú..." << endl;
+    trainLoss(layer, X, y_true, optimizer, 5000, 50);
 
-    for (int epoch = 1; epoch <= epochs; ++epoch) {
-        //A: ÇåÁãÉÏÒ»ÂÖµÄÌÝ¶È
-        optimizer.zeroGrad();
-        //B: Ç°Ïò´«²¥
-        Tensor matmul_res = matmul(X, W);
-        Tensor y_pred = matmul_res + b;
-        //C: ¼ÆËãËðÊ§
-        Tensor loss = mseLoss(y_pred, y_true);
-        //D: ·´Ïò´«²¥£¬¼ÆËã W ºÍ b µÄÌÝ¶È
-        loss.backward();
-        //E: ¸üÐÂ²ÎÊý£¨ÌÝ¶ÈÏÂ½µ£©
-        optimizer.step();
-
-        // ´òÓ¡½ø¶È
-        if (epoch % 50 == 0 || epoch == 1) {
-            cout << "Epoch " << epoch << " | loss = " << loss.value() << endl;
-        }
-    }
-
-    cout << "ÑµÁ·Íê³É" << endl;
-    //5. ÑéÖ¤²¿·Ö£¨½öµ÷ÊÔÓÃ£¬¿ÉÉ¾³ý£©
-    cout << "\n===== ÑéÖ¤²¿·Ö£¨½öÓÃÓÚµ÷ÊÔ£©=====" << endl;
-    cout << "ÑµÁ·µÃµ½µÄ²ÎÊý£º" << endl;
+    cout << "Ñµï¿½ï¿½ï¿½ï¿½ï¿½" << endl;
+    cout << "\n===== ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½Ô£ï¿½=====" << endl;
+    cout << "Ñµï¿½ï¿½ï¿½Ãµï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½" << endl;
     cout << "w1 = " << W.at(0, 0) << ", w2 = " << W.at(1, 0) << ", b = " << b.at(0, 0) << endl;
-    cout << "ÕæÊµ²ÎÊý£º" << endl;
+    cout << "ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << endl;
     cout << "w1 = " << true_w1 << ", w2 = " << true_w2 << ", b = " << true_b << endl;
 
-    double err_w1 = abs(W.at(0, 0) - true_w1) / true_w1;
-    double err_w2 = abs(W.at(1, 0) - true_w2) / true_w2;
-    double err_b = abs(b.at(0, 0) - true_b) / true_b;
-    cout << "Ïà¶ÔÎó²î£ºw1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
+    double err_w1 = abs(W.at(0, 0) - true_w1) / abs(true_w1);
+    double err_w2 = abs(W.at(1, 0) - true_w2) / abs(true_w2);
+    double err_b = abs(b.at(0, 0) - true_b) / abs(true_b);
+
+    cout << "ï¿½ï¿½ï¿½ï¿½ï¿½î£ºw1=" << err_w1 * 100 << "%, w2=" << err_w2 * 100 << "%, b=" << err_b * 100 << "%" << endl;
 
     if (err_w1 < 0.05 && err_w2 < 0.05 && err_b < 0.05) {
-        cout << "ÑéÖ¤Í¨¹ý£ºÌÝ¶ÈÏÂ½µÕýÈ·ÊµÏÖÁË²ÎÊýÊÕÁ²¡£" << endl;
+        cout << "ï¿½ï¿½Ö¤Í¨ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½Â½ï¿½ï¿½ï¿½È·Êµï¿½ï¿½ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << endl;
     }
     else {
-        cout << "ÑéÖ¤Ê§°Ü£º²ÎÊýÎ´ÊÕÁ²£¬Çë¼ì²éÑ§Ï°ÂÊ»òÑµÁ·ÂÖÊý¡£" << endl;
+        cout << "ï¿½ï¿½Ö¤Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ§Ï°ï¿½Ê»ï¿½Ñµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" << endl;
     }
     cout << "=============================================" << endl;
-
 }
 
 void runChallenge() {
@@ -131,24 +111,7 @@ void runChallenge() {
     optimizer.addParam(&layer2.weight());
     optimizer.addParam(&layer2.bias());
 
-    const int epochs = 20000;
-    for (int epoch = 0; epoch <= epochs; epoch++) {
-        optimizer.zeroGrad();
-
-        Tensor h = layer1.forward(x);
-        Tensor a = sigmoid(h);
-        Tensor z = layer2.forward(a);
-        Tensor pred = sigmoid(z);
-        Tensor loss = mseLoss(pred, target);
-
-        loss.backward();
-        optimizer.step();
-
-        if (epoch % 2000 == 0 || epoch == epochs) {
-            cout << "epoch " << setw(5) << epoch
-                 << " loss = " << fixed << setprecision(6) << loss.value() << endl;
-        }
-    }
+    trainLoss(layer1, layer2, x, target, optimizer, 20000, 2000);
 
     Tensor h = layer1.forward(x);
     Tensor a = sigmoid(h);
