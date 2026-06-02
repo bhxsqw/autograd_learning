@@ -16,7 +16,7 @@ TrainResult trainLoss(
     Tensor& target,
     SGD& optimizer,
     int epochs,
-    int logInterval = 0
+    int logInterval = 0//每隔多少轮打印一次 loss
 );
 
 TrainResult trainLoss(
@@ -26,7 +26,7 @@ TrainResult trainLoss(
     Tensor& target,
     SGD& optimizer,
     int epochs,
-    int logInterval = 0
+    int logInterval = 0//每隔多少轮打印一次 loss
 );
 
 #endif
