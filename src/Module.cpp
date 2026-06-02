@@ -1,8 +1,10 @@
+﻿#include <cmath>
+#include <cstdlib>
+#include <iostream>
+
 #include "Module.h"
 
-#include <cstdlib>
-#include <cmath>
-#include <stdexcept>
+using namespace std;
 
 static void linearBackward(Tensor* self) {
     Tensor* x = self->getParent(0);
@@ -48,7 +50,8 @@ Linear::Linear(int inFeatures, int outFeatures)
     : W(inFeatures, outFeatures, 0.0, true),
       b(1, outFeatures, 0.0, true) {
     if (inFeatures <= 0 || outFeatures <= 0) {
-        throw std::invalid_argument("Linear dimensions must be positive");
+        cout << "Linear层的输入维度和输出维度必须大于0" << endl;
+        return;
     }
 
     static bool seeded = false;
@@ -69,7 +72,8 @@ Linear::Linear(int inFeatures, int outFeatures)
 
 Tensor Linear::forward(Tensor& x) {
     if (x.colCount() != W.rowCount()) {
-        throw std::invalid_argument("Linear forward requires x.colCount() == inFeatures");
+        cout << "Linear层前向传播失败：输入矩阵的列数必须等于权重矩阵的行数" << endl;
+        return Tensor();
     }
 
     bool req = x.needGrad() || W.needGrad() || b.needGrad();
