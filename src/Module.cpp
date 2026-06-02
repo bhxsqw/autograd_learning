@@ -1,7 +1,10 @@
+﻿#include <cmath>
+#include <cstdlib>
+#include <iostream>
+
 #include "Module.h"
 
-#include <cmath>
-#include <stdexcept>
+using namespace std;
 
 static void linearBackward(Tensor* self) {
     Tensor* x = self->getParent(0);
@@ -47,21 +50,30 @@ Linear::Linear(int inFeatures, int outFeatures)
     : W(inFeatures, outFeatures, 0.0, true),
       b(1, outFeatures, 0.0, true) {
     if (inFeatures <= 0 || outFeatures <= 0) {
-        throw std::invalid_argument("Linear dimensions must be positive");
+        cout << "Linear层的输入维度和输出维度必须大于0" << endl;
+        return;
     }
 
-    double scale = 1.0 / std::sqrt(static_cast<double>(inFeatures));
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(42);
+        seeded = true;
+    }
+
+    double limit = std::sqrt(6.0 / (inFeatures + outFeatures));
+
     for (int i = 0; i < W.rowCount(); i++) {
         for (int j = 0; j < W.colCount(); j++) {
-            int pattern = ((i + 1) * (j + 2)) % 7;
-            W.at(i, j) = (static_cast<double>(pattern) / 7.0 - 0.5) * scale;
+            double r = std::rand() * 1.0 / RAND_MAX;
+            W.at(i, j) = (2.0 * r - 1.0) * limit;
         }
     }
 }
 
 Tensor Linear::forward(Tensor& x) {
     if (x.colCount() != W.rowCount()) {
-        throw std::invalid_argument("Linear forward requires x.colCount() == inFeatures");
+        cout << "Linear层前向传播失败：输入矩阵的列数必须等于权重矩阵的行数" << endl;
+        return Tensor();
     }
 
     bool req = x.needGrad() || W.needGrad() || b.needGrad();
