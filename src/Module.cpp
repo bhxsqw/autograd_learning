@@ -1,5 +1,6 @@
 #include "Module.h"
 
+#include <cstdlib>
 #include <cmath>
 #include <stdexcept>
 
@@ -50,11 +51,18 @@ Linear::Linear(int inFeatures, int outFeatures)
         throw std::invalid_argument("Linear dimensions must be positive");
     }
 
-    double scale = 1.0 / std::sqrt(static_cast<double>(inFeatures));
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(42);
+        seeded = true;
+    }
+
+    double limit = std::sqrt(6.0 / (inFeatures + outFeatures));
+
     for (int i = 0; i < W.rowCount(); i++) {
         for (int j = 0; j < W.colCount(); j++) {
-            int pattern = ((i + 1) * (j + 2)) % 7;
-            W.at(i, j) = (static_cast<double>(pattern) / 7.0 - 0.5) * scale;
+            double r = std::rand() * 1.0 / RAND_MAX;
+            W.at(i, j) = (2.0 * r - 1.0) * limit;
         }
     }
 }
